@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
-  experimental: { appDir: true },
+  /* 空 or 他の設定だけ */
 };
-
 module.exports = nextConfig;
