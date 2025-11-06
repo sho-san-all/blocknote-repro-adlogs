@@ -9,12 +9,11 @@ import {
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 
-// CSS（クライアントでのみ評価）
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/core/style.css";
 import "@blocknote/mantine/style.css";
 
-/** Alert（擬似Callout）ブロック */
+/** Alert（擬似Callout） */
 const AlertBlock = createReactBlockSpec(
   {
     type: "alert",
@@ -32,7 +31,6 @@ const AlertBlock = createReactBlockSpec(
         variant: "info" | "warning" | "success";
         title: string;
       };
-
       const palette = {
         info: { icon: "💡", border: "#60a5fa", bg: "#eff6ff" },
         warning: { icon: "⚠️", border: "#f59e0b", bg: "#fffbeb" },
@@ -84,7 +82,6 @@ const AlertBlock = createReactBlockSpec(
               ))}
             </div>
           </div>
-
           <div style={{ marginTop: 8 }}>{ctx.renderChildren()}</div>
         </div>
       );
@@ -98,16 +95,15 @@ type Props = {
   onChange?: (docJSON: any) => void;
 };
 
-export default function AdLogsEditorInner({
-  initialContent,
-  readOnly = false,
-  onChange,
-}: Props) {
-  // マウント後だけ描画（保険）
+/** ← 親：常に同じ2つのhooksのみ(useState/useEffect)を使う */
+export default function AdLogsEditorInner(props: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+  return mounted ? <EditorBody {...props} /> : null;
+}
 
+/** ← 子：ここでuseMemo/useCallback/useCreateBlockNote等の“重いhooks”を使う */
+function EditorBody({ initialContent, readOnly = false, onChange }: Props) {
   // すべて不変化
   const tablesOpt = useMemo(
     () => ({ splitCells: true, cellBackgroundColor: true, cellTextColor: true, headers: true }),
@@ -148,16 +144,16 @@ export default function AdLogsEditorInner({
     []
   );
 
-  // ブラウザ安全なアップロード（Buffer 非使用）
+  // Bufferは使わずブラウザAPIのみ
   const uploadFile = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
     return { url, size: file.size, name: file.name };
   }, []);
 
-  const memoInitial = useMemo(() => initialContent, [initialContent]);
+  const memoInitial = useMemo(() => initialContent ?? [], [initialContent]);
 
   const editor = useCreateBlockNote({
-    initialContent: memoInitial ?? [],
+    initialContent: memoInitial,
     dictionary: locales.ja,
     uploadFile,
     tables: tablesOpt,
@@ -167,5 +163,12 @@ export default function AdLogsEditorInner({
 
   const handleChange = useCallback(() => onChange?.(editor.document), [editor, onChange]);
 
-  return <BlockNoteView editor={editor} editable={!readOnly} theme="light" onChange={handleChange} />;
+  return (
+    <BlockNoteView
+      editor={editor}
+      editable={!readOnly}
+      theme="light"
+      onChange={handleChange}
+    />
+  );
 }
