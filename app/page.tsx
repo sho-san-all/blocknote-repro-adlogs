@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useCallback } from "react";
 import { locales, defaultBlockSpecs } from "@blocknote/core";
-import { Callout } from "@blocknote/core/extensions/callout";
 import {
   useCreateBlockNote,
   getDefaultReactSlashMenuItems,
