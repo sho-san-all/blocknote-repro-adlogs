@@ -13,7 +13,10 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/core/style.css";
 import "@blocknote/mantine/style.css";
 
-/** Alert（擬似Callout） */
+/** “空”の既定ドキュメント（空段落1つが必須） */
+const DEFAULT_DOC = [{ type: "paragraph", content: [] }];
+
+/** Alert（擬似Callout）ブロック */
 const AlertBlock = createReactBlockSpec(
   {
     type: "alert",
@@ -31,6 +34,7 @@ const AlertBlock = createReactBlockSpec(
         variant: "info" | "warning" | "success";
         title: string;
       };
+
       const palette = {
         info: { icon: "💡", border: "#60a5fa", bg: "#eff6ff" },
         warning: { icon: "⚠️", border: "#f59e0b", bg: "#fffbeb" },
@@ -82,6 +86,7 @@ const AlertBlock = createReactBlockSpec(
               ))}
             </div>
           </div>
+
           <div style={{ marginTop: 8 }}>{ctx.renderChildren()}</div>
         </div>
       );
@@ -95,14 +100,14 @@ type Props = {
   onChange?: (docJSON: any) => void;
 };
 
-/** ← 親：常に同じ2つのhooksのみ(useState/useEffect)を使う */
+/** 親：マウント確認だけ。hooks数を固定するため本体は子へ分離 */
 export default function AdLogsEditorInner(props: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return mounted ? <EditorBody {...props} /> : null;
 }
 
-/** ← 子：ここでuseMemo/useCallback/useCreateBlockNote等の“重いhooks”を使う */
+/** 子：エディタ本体（重いhooksはこちらに集約） */
 function EditorBody({ initialContent, readOnly = false, onChange }: Props) {
   // すべて不変化
   const tablesOpt = useMemo(
@@ -144,13 +149,18 @@ function EditorBody({ initialContent, readOnly = false, onChange }: Props) {
     []
   );
 
-  // Bufferは使わずブラウザAPIのみ
+  // ブラウザ安全なアップロード
   const uploadFile = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
     return { url, size: file.size, name: file.name };
   }, []);
 
-  const memoInitial = useMemo(() => initialContent ?? [], [initialContent]);
+  // 空や不正は既定ドキュメントに置換
+  const memoInitial = useMemo(() => {
+    return Array.isArray(initialContent) && initialContent.length > 0
+      ? initialContent
+      : DEFAULT_DOC;
+  }, [initialContent]);
 
   const editor = useCreateBlockNote({
     initialContent: memoInitial,
