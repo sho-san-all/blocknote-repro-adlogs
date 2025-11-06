@@ -3,23 +3,18 @@
 import { useCallback, useMemo } from "react";
 import { locales, defaultBlockSpecs } from "@blocknote/core";
 import {
-  BlockNoteView as MantineBlockNoteView,
   getDefaultReactSlashMenuItems,
   useCreateBlockNote,
   createReactBlockSpec,
 } from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
 
 // 必須のCSS
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/core/style.css";
 import "@blocknote/mantine/style.css";
 
-/** ─────────────────────────────────────────────
- *  1) 自作 Alert ブロック（擬似 Callout）
- *  - variant: 視覚的な色/アイコンを切り替え
- *  - title  : 上段の太字テキスト
- *  - content: 下段の本文（BlockNoteの子ブロック）
- *  ─────────────────────────────────────────── */
+/** Alert（擬似Callout）ブロック */
 const AlertBlock = createReactBlockSpec(
   {
     type: "alert",
@@ -30,9 +25,8 @@ const AlertBlock = createReactBlockSpec(
       },
       title: { default: "見出し" },
     },
-    // このブロックの子要素を許可
-    content: "inline", // タイトル行で使う
-    children: "block", // タイトルの下に任意のブロックを入れられる
+    content: "inline", // タイトル行
+    children: "block", // タイトル下に任意のブロック可
   },
   {
     render: (ctx) => {
@@ -57,14 +51,12 @@ const AlertBlock = createReactBlockSpec(
             borderRadius: 8,
             margin: "12px 0",
           }}
-          contentEditable={false} // コンテナは編集不可
+          contentEditable={false}
         >
-          {/* タイトル（太字・アイコン） */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>{palette.icon}</span>
             <div
               style={{ fontWeight: 700 }}
-              // タイトルは入力欄として編集可能にする
               contentEditable
               suppressContentEditableWarning
               onInput={(e) => {
@@ -74,15 +66,10 @@ const AlertBlock = createReactBlockSpec(
                   props: { ...block.props, title: t },
                 });
               }}
-              onBlur={() => {
-                // 不要だが念のため re-render
-                editor.updateBlock(block, { ...block });
-              }}
             >
               {title}
             </div>
 
-            {/* 右側の variant 切替（info / warning / success） */}
             <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
               {(["info", "warning", "success"] as const).map((v) => (
                 <button
@@ -108,11 +95,7 @@ const AlertBlock = createReactBlockSpec(
             </div>
           </div>
 
-          {/* 本文（ここから下は子ブロックを自由に） */}
-          <div style={{ marginTop: 8 }}>
-            {/** タイトル下にパラグラフなどの子ブロックを入れる領域 */}
-            {ctx.renderChildren()}
-          </div>
+          <div style={{ marginTop: 8 }}>{ctx.renderChildren()}</div>
         </div>
       );
     },
@@ -130,7 +113,7 @@ export default function AdLogsEditor({
   readOnly = false,
   onChange,
 }: Props) {
-  // 2) すべてのオプションを “不変化”
+  // すべて “不変化”
   const tablesOpt = useMemo(
     () => ({
       splitCells: true,
@@ -141,7 +124,6 @@ export default function AdLogsEditor({
     []
   );
 
-  // 既定のブロック + 自作 Alert を登録
   const blockSpecs = useMemo(
     () => ({
       ...defaultBlockSpecs,
@@ -150,7 +132,6 @@ export default function AdLogsEditor({
     []
   );
 
-  // Slash メニュー（Alert 追加）
   const slashItems = useCallback(
     (ed: any) => [
       ...getDefaultReactSlashMenuItems(ed),
@@ -174,7 +155,7 @@ export default function AdLogsEditor({
                     content: [{ type: "text", text: "ここに説明を書きます。" }],
                   },
                 ],
-                children: [], // 子ブロックは空でOK（あとでユーザーが追加）
+                children: [],
               },
             ],
             cur?.id ?? cur,
@@ -186,13 +167,10 @@ export default function AdLogsEditor({
     []
   );
 
-  // 画像アップロード（簡易：Data URL）
+  // Buffer をやめ、オブジェクトURLで返す（ブラウザOK）
   const uploadFile = useCallback(async (file: File) => {
-    const b = await file.arrayBuffer();
-    const base64 = Buffer.from(b).toString("base64");
-    const mime = file.type || "application/octet-stream";
     return {
-      url: `data:${mime};base64,${base64}`,
+      url: URL.createObjectURL(file),
       size: file.size,
       name: file.name,
     };
@@ -200,14 +178,13 @@ export default function AdLogsEditor({
 
   const memoInitial = useMemo(() => initialContent, [initialContent]);
 
-  // 3) useCreateBlockNote には“メモ化参照のみ”を渡す
   const editor = useCreateBlockNote({
     initialContent: memoInitial,
     dictionary: locales.ja,
     uploadFile,
     tables: tablesOpt,
     slashMenuItems: slashItems,
-    blockSpecs, // ← 自作ブロックを登録
+    blockSpecs,
   } as any);
 
   const handleChange = useCallback(() => {
@@ -215,7 +192,7 @@ export default function AdLogsEditor({
   }, [editor, onChange]);
 
   return (
-    <MantineBlockNoteView
+    <BlockNoteView
       editor={editor}
       editable={!readOnly}
       theme="light"
