@@ -45,6 +45,8 @@ export default function Page() {
           } catch {}
         }}
       />
+    <p><a href="/ad-logs/test-123/edit">/ad-logs/test-123/edit</a></p>
+
     </main>
   );
 }
